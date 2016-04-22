@@ -69,18 +69,35 @@ aniso_node.inputs.bmask_path = bmask_diff
 #create registration node
 reg_node = pe.Node(name= 'reg_node', interface=Registration())
 reg_node.inputs.fixed_image = T1
-#reg_node.inputs.moving_image = 'anisopwrmap'
-reg_node.inputs.output_transform_prefix = 'warptransform_'
-reg_node.inputs.initial_moving_transform = linear_mat
-reg_node.inputs.transforms = ['SyN']
+reg_node.inputs.output_transform_prefix = 'output_'
+reg_node.inputs.transforms = ['Rigid', 'Affine', 'SyN']
+reg_node.inputs.transform_parameters = [(0.1,), (0.1,), (0.2, 3.0, 0.0)]
+reg_node.inputs.number_of_iterations = [[10000, 11110, 11110]] * 2 + [[100, 30, 20]]
 reg_node.inputs.dimension = 3
-reg_node.inputs.metric = ['MI']
-reg_node.inputs.write_composite_transform=True
+reg_node.write_composite_transform = True
+reg_node.inputs.collapse_output_transforms = True
+reg_node.inputs.initial_moving_transform_com = True
+#I probably want to do MI??
+reg_node.inputs.metric = ['Mattes'] * 2 + [['Mattes', 'CC']]
+reg_node.inputs.metric_weight = [1] * 2 + [[0.5, 0.5]]
+reg_node.inputs.radius_or_number_of_bins = [32] * 2 + [[32, 4]]
+reg_node.inputs.sampling_strategy = ['Regular'] * 2 + [[None, None]]
+reg_node.inputs.sampling_percentage = [0.3]*2 + [[None, None]]
+reg_node.inputs.convergence_threshold = [1.e-8] * 2 + [-0.01]
+reg_node.inputs.convergence_window_size = [20] * 2 + [5]
+reg_node.inputs.smoothing_sigmas = [[4, 2, 1]] * 2 + [[1, 0.5, 0]]
+reg_node.inputs.sigma_units = ['vox'] * 3
+reg_node.inputs.shrink_factors = [[3, 2, 1]]*2 + [[4, 2, 1]]
+reg_node.inputs.use_estimate_learning_rate_once = [True]*3
+reg_node.inputs.use_histogram_matching = [False]*2+[True]
+reg_node.inputs.winsorize_lower_quantile = 0.005
+reg_node.inputs.winsorize_upper_quantile = 0.995
+reg_node.inputs.args = '--float'
+reg_node.inputs.num_threads = 4
+#reg_node.inputs.initial_moving_transform = linear_mat
 reg_node.inputs.output_warped_image = os.path.abspath('anisotropic_power_map_warped.nii.gz')
-reg_node.inputs.smoothing_sigmas = [[1,0],[2,1,0]]
-reg_node.inputs.sigma_units = ['vox']*2
-reg_node.inputs.shrink_factors = [[2,1],[3,2,1]]
-reg_node.inputs.metric_weight = [1]*2
+#reg_node.inputs.plugin_args = {'sbatch_args': '-c%d' % 4}
+
 
 pipeline = pe.Workflow(name='pipeline')
 pipeline.base_dir = basedir
