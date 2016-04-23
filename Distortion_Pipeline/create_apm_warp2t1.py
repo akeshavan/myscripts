@@ -26,7 +26,7 @@ def create_anisopowermap(bvec_path, diffdata, bmask_diff):
     return anisopwr_savepath
 
 
-def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory):
+def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir):
     import nipype.pipeline.engine as pe
     from nipype.interfaces.utility import Function, IdentityInterface
     from nipype.interfaces.ants import Registration
@@ -97,20 +97,16 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory):
 T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
 ecdiff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
 bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
-bval_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-001.bval'
 bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
-aff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected_roi_bbreg_ec105-kmj0105-000-MPRAGE.mat'
 basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
 bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
-
-basedir = basedir_from_pbr
 
 ptlist = ['kmj0105']
 subjects_directory = '/data/henry7/PBR/subjects/'
 
 for ptid in ptlist:
 
-    nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory)
+    nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
     nlwf.inputs.inputspec.inputs.bvec_path = bvec_from_pbr
     nlwf.inputs.inputspec.inputs.diffdata = ec_diff_from_pbr
     nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
