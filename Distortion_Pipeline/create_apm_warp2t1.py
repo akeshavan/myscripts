@@ -1,6 +1,6 @@
 __author__ = 'kjordan'
 
-def create_anisopowermap(bvec_path, diffdata, bmask_diff):
+def create_anisopowermap(bvec_path, diffdata):
     import os
     import nibabel as nib
     from dipy.reconst.shm import anisotropic_power
@@ -26,7 +26,7 @@ def create_anisopowermap(bvec_path, diffdata, bmask_diff):
     return anisopwr_savepath
 
 
-def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir):
+def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name='testprocproc'):
     import nipype.pipeline.engine as pe
     from nipype.interfaces.utility import Function, IdentityInterface
     from nipype.interfaces.ants import Registration
@@ -36,7 +36,7 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir):
 
 
     #create anisotropic power map node
-    aniso_node = pe.Node(name = 'aniso_node', interface=Function(input_names=['bvec_path', 'diffdata', 'bmaskdiff_path'],
+    aniso_node = pe.Node(name = 'aniso_node', interface=Function(input_names=['bvec_path', 'diffdata'],
                                                              output_names=['anisopwrmap_savepath'],
                                                              function=create_anisopowermap))
     #create registration node
@@ -67,28 +67,30 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir):
     reg_node.inputs.args = '--float'
     reg_node.inputs.num_threads = 4
 
-    outputspec = pe.Node(IdentityInterface(fields=['composite_transform', 'forward_invert_flags', 'forward_transforms',
+    '''outputspec = pe.Node(IdentityInterface(fields=['composite_transform', 'forward_invert_flags', 'forward_transforms',
                                                    'inverse_composite_transform', 'inverse_warped_image',
                                                    'reverse_invert_flags', 'reverse_transforms', 'save_state',
-                                                   'warped_image']), name='outputspec')
+                                                   'warped_image']), name='outputspec')'''
+
+    outputspec = pe.Node(IdentityInterface(fields=['composite_transform','inverse_composite_transform', 'inverse_warped_image','warped_image']), name='outputspec')
 
     pipeline = pe.Workflow(name='pipeline')
     pipeline.base_dir = basedir
 
     pipeline.connect(inputspec, 'bvec_path', aniso_node, 'bvec_path')
     pipeline.connect(inputspec, 'diffdata', aniso_node, 'diffdata')
-    pipeline.connect(inputspec, 'bmask_diff', aniso_node, 'bmask_diff')
+    #pipeline.connect(inputspec, 'bmask_diff', aniso_node, 'bmask_diff')
     pipeline.connect(inputspec, 'T1', reg_node, 'fixed_image')
-    pipeline.connect(inputspec, 'bmaskt1', reg_node, 'fixed_image_mask')
+    #pipeline.connect(inputspec, 'bmaskt1', reg_node, 'fixed_image_mask')
     pipeline.connect(aniso_node, 'anisopwrmap_savepath', reg_node, 'moving_image')
     pipeline.connect(reg_node, 'composite_transform', outputspec, 'composite_transform')
-    pipeline.connect(reg_node, 'forward_invert_flags', outputspec, 'forward_input_flags')
-    pipeline.connect(reg_node, 'forward_tranforms', outputspec, 'forward_tranforms')
+    #pipeline.connect(reg_node, 'forward_invert_flags', outputspec, 'forward_input_flags')
+    #pipeline.connect(reg_node, 'forward_tranforms', outputspec, 'forward_tranforms')
     pipeline.connect(reg_node, 'inverse_composite_transform', outputspec, 'inverse_composite_tranform')
     pipeline.connect(reg_node, 'inverse_warped_image', outputspec, 'inverse_warped_image')
-    pipeline.connect(reg_node, 'reverse_invert_flags', outputspec, 'reverse_invert_flags')
-    pipeline.connect(reg_node, 'reverse_transforms', outputspec, 'reverse_transforms')
-    pipeline.connect(reg_node, 'save_state', outputspec, 'save_state')
+    #pipeline.connect(reg_node, 'reverse_invert_flags', outputspec, 'reverse_invert_flags')
+    #pipeline.connect(reg_node, 'reverse_transforms', outputspec, 'reverse_transforms')
+    #pipeline.connect(reg_node, 'save_state', outputspec, 'save_state')
     pipeline.connect(reg_node, 'warped_image', outputspec, 'warped_image')
 
     pipeline.write_graph()
@@ -97,11 +99,11 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir):
 T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
 ecdiff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
 bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
-bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
+#bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
 basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
-bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
+#bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
 
-ptlist = ['kmj0105']
+ptlist = ['kmj0081']
 subjects_directory = '/data/henry7/PBR/subjects/'
 
 for ptid in ptlist:
@@ -109,9 +111,9 @@ for ptid in ptlist:
     nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
     nlwf.inputs.inputspec.inputs.bvec_path = bvec_from_pbr
     nlwf.inputs.inputspec.inputs.diffdata = ec_diff_from_pbr
-    nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
+    #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
     nlwf.inputs.inputspec.inputs.T1 = T1_from_pbr
-    nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
-
-    nlwf.run(plugin="SGE",plugin_args={"qsub_args":
-                       "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=4G -v MKL_NUM_THREADS=1"})
+    #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
+    nlwf.run()
+    '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
+                       "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=4G -v MKL_NUM_THREADS=1"})'''
