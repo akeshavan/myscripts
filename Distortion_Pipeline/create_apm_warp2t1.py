@@ -97,7 +97,7 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name
     return pipeline
 
 T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
-ecdiff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
+ec_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
 bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
 #bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
 basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
@@ -109,10 +109,10 @@ subjects_directory = '/data/henry7/PBR/subjects/'
 for ptid in ptlist:
 
     nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
-    nlwf.inputs.inputspec.inputs.bvec_path = bvec_from_pbr
-    nlwf.inputs.inputspec.inputs.diffdata = ec_diff_from_pbr
+    nlwf.inputs.inputspec.bvec_path = bvec_from_pbr
+    nlwf.inputs.inputspec.diffdata = ec_diff_from_pbr
     #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
-    nlwf.inputs.inputspec.inputs.T1 = T1_from_pbr
+    nlwf.inputs.inputspec.T1 = T1_from_pbr
     #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
     nlwf.run()
     '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
