@@ -96,24 +96,26 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name
     pipeline.write_graph()
     return pipeline
 
-T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
-ec_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
-bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
-#bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
-basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
-#bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
 
-ptlist = ['kmj0081']
-subjects_directory = '/data/henry7/PBR/subjects/'
+if __name__=='__main__':
+    T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
+    ec_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
+    bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
+    #bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
+    basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
+    #bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
 
-for ptid in ptlist:
+    ptlist = ['kmj0081']
+    subjects_directory = '/data/henry7/PBR/subjects/'
 
-    nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
-    nlwf.inputs.inputspec.bvec_path = bvec_from_pbr
-    nlwf.inputs.inputspec.diffdata = ec_diff_from_pbr
-    #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
-    nlwf.inputs.inputspec.T1 = T1_from_pbr
-    #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
-    nlwf.run()
-    '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
+    for ptid in ptlist:
+
+        nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
+        nlwf.inputs.inputspec.bvec_path = bvec_from_pbr
+        nlwf.inputs.inputspec.diffdata = ec_diff_from_pbr
+        #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
+        nlwf.inputs.inputspec.T1 = T1_from_pbr
+        #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
+        nlwf.run()
+        '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
                        "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=4G -v MKL_NUM_THREADS=1"})'''
