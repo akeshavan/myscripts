@@ -105,7 +105,7 @@ if __name__=='__main__':
     basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
     #bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
 
-    ptlist = ['kmj0081']
+    ptlist = ['kmj0105']
     subjects_directory = '/data/henry7/PBR/subjects/'
 
     for ptid in ptlist:
@@ -116,6 +116,10 @@ if __name__=='__main__':
         #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
         nlwf.inputs.inputspec.T1 = T1_from_pbr
         #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
+        '''nlwf.outputs.outputspec.composite_transform = os.path.join(basedir_from_pbr,'my_composite_transform.mat')
+        nlwf.outputs.outputspec.inverse_composite_transform = os.path.join(basedir_from_pbr, 'my_inv_composite_transform.mat')
+        nlwf.outputs.outputspec.inverse_warped_image = os.path.join(basedir_from_pbr, 'my_inv_warpedimage.nii.gz')
+        nlwf.outputs.outputspec.warped_image = os.path.join(basedir_from_pbr, 'my_warped_image.nii.gz')'''
         nlwf.run()
         '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
                        "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=4G -v MKL_NUM_THREADS=1"})'''
