@@ -17,22 +17,23 @@ def create_anisopowermap(bvec_path, diffdata):
     diffdatashell = diffdata[:,:,:,1:]
     aff = img.get_affine()
 
-    myshs = sf_to_sh(diffdatashell, gtab_hemisphere, sh_order=2)
+    myshs = sf_to_sh(diffdatashell, gtab_hemisphere, sh_order=6)
     anisomap = anisotropic_power(myshs)
-    #Add in a brain masking step here, if beneficial to end result
-    anisopwr_savepath = os.path.abspath('anisotropic_power_map.nii.gz')
+    anisopwr_savepath = os.path.abspath('anisotropic_power_map_sh6.nii.gz')
     img = nib.Nifti1Image(anisomap, aff)
     img.to_filename(anisopwr_savepath)
     return anisopwr_savepath
 
 
 def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name='testprocproc'):
+
+    #CREATE NODES
     import nipype.pipeline.engine as pe
     from nipype.interfaces.utility import Function, IdentityInterface
     from nipype.interfaces.ants import Registration
 
     #create input node
-    inputspec = pe.Node(IdentityInterface(fields=['bvec_path', 'diffdata', 'bmask_diff', 'T1']), name='inputspec')
+    inputspec = pe.Node(IdentityInterface(fields=['bvec_path', 'diffdata', 'bmaskt1', 'T1', 'fa_path']), name='inputspec')
 
 
     #create anisotropic power map node
@@ -46,9 +47,8 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name
     reg_node.inputs.transform_parameters = [(0.1,), (0.1,), (0.2, 3.0, 0.0)]
     reg_node.inputs.number_of_iterations = [[10000, 11110, 11110]] * 2 + [[100, 30, 20]]
     reg_node.inputs.dimension = 3
-    reg_node.write_composite_transform = True
+    reg_node.inputs.write_composite_transform = True
     reg_node.inputs.collapse_output_transforms = True
-    reg_node.inputs.initial_moving_transform_com = True
     #I probably want to do MI??
     reg_node.inputs.metric = ['Mattes'] * 2 + [['Mattes', 'CC']]
     reg_node.inputs.metric_weight = [1] * 2 + [[0.5, 0.5]]
@@ -65,61 +65,63 @@ def nonlinear_reg_diff2t2_workflow(subject_id, subjects_directory, basedir, name
     reg_node.inputs.winsorize_lower_quantile = 0.005
     reg_node.inputs.winsorize_upper_quantile = 0.995
     reg_node.inputs.args = '--float'
-    reg_node.inputs.num_threads = 4
+    reg_node.inputs.num_threads = 8
+    reg_node.inputs.output_warped_image = True
 
-    '''outputspec = pe.Node(IdentityInterface(fields=['composite_transform', 'forward_invert_flags', 'forward_transforms',
-                                                   'inverse_composite_transform', 'inverse_warped_image',
-                                                   'reverse_invert_flags', 'reverse_transforms', 'save_state',
-                                                   'warped_image']), name='outputspec')'''
+    newreg_node = reg_node.clone(name='newreg_node')
 
-    outputspec = pe.Node(IdentityInterface(fields=['composite_transform','inverse_composite_transform', 'inverse_warped_image','warped_image']), name='outputspec')
+    '''from nipype.interfaces.ants import ApplyTransformsToPoints
+    apply2pts = pe.Node(name= 'apply2pts', interface=ApplyTransformsToPoints())'''
 
-    pipeline = pe.Workflow(name='pipeline')
+    from nipype.interfaces.ants import ApplyTransforms
+    apply2ims = pe.Node(name= 'apply2ims', interface=ApplyTransforms())
+    apply2ims.inputs.dimension = 3
+    apply2ims.inputs.interpolation = 'Linear'
+
+    apply2ims_fa = apply2ims.clone(name='apply2ims_fa')
+
+
+    #PUT ALL NODES TOGETHER INTO PIPELINE
+    import nipype.interfaces.io as nio
+    sinker = pe.Node(nio.DataSink(), name="sinker")
+    sinker.inputs.base_directory = "/data/henry7/PBR/subjects/"
+    sinker.inputs.container = subject_id
+
+    pipeline = pe.Workflow(name=name)
     pipeline.base_dir = basedir
+
+    pipeline.connect(reg_node, "composite_transform", sinker, "dti.nonlinear.@composite")
+    pipeline.connect(reg_node, "warped_image", sinker, "dti.nonlinear.@warped")
+    pipeline.connect(reg_node, "inverse_composite_transform", sinker, "dti.nonlinear.@invcomp")
+    pipeline.connect(reg_node, "inverse_warped_image", sinker, "dti.nonlinear.@invwarp")
+    pipeline.connect(aniso_node, "anisopwrmap_savepath", sinker, "dti.nonlinear.@apmap_sh6_diffsp")
+    pipeline.connect(apply2ims, "output_image", sinker, "dti.nonlinear.@t1_diffsp")
+    pipeline.connect(apply2ims_fa, "output_image", sinker, "dti.nonlinear_fa.@t1_diffsp")
 
     pipeline.connect(inputspec, 'bvec_path', aniso_node, 'bvec_path')
     pipeline.connect(inputspec, 'diffdata', aniso_node, 'diffdata')
     #pipeline.connect(inputspec, 'bmask_diff', aniso_node, 'bmask_diff')
     pipeline.connect(inputspec, 'T1', reg_node, 'fixed_image')
-    #pipeline.connect(inputspec, 'bmaskt1', reg_node, 'fixed_image_mask')
+    pipeline.connect(inputspec, 'bmaskt1', reg_node, 'fixed_image_mask')
     pipeline.connect(aniso_node, 'anisopwrmap_savepath', reg_node, 'moving_image')
-    pipeline.connect(reg_node, 'composite_transform', outputspec, 'composite_transform')
-    #pipeline.connect(reg_node, 'forward_invert_flags', outputspec, 'forward_input_flags')
-    #pipeline.connect(reg_node, 'forward_tranforms', outputspec, 'forward_tranforms')
-    pipeline.connect(reg_node, 'inverse_composite_transform', outputspec, 'inverse_composite_tranform')
-    pipeline.connect(reg_node, 'inverse_warped_image', outputspec, 'inverse_warped_image')
-    #pipeline.connect(reg_node, 'reverse_invert_flags', outputspec, 'reverse_invert_flags')
-    #pipeline.connect(reg_node, 'reverse_transforms', outputspec, 'reverse_transforms')
-    #pipeline.connect(reg_node, 'save_state', outputspec, 'save_state')
-    pipeline.connect(reg_node, 'warped_image', outputspec, 'warped_image')
+
+    pipeline.connect(aniso_node, 'anisopwrmap_savepath', apply2ims, 'reference_image')
+    pipeline.connect(inputspec, 'T1', apply2ims, 'input_image')
+    pipeline.connect(reg_node, 'inverse_composite_transform', apply2ims, 'transforms')
+
+    pipeline.connect(inputspec, 'fa_path', apply2ims_fa, 'reference_image')
+    pipeline.connect(inputspec, 'T1', apply2ims_fa, 'input_image')
+    pipeline.connect(reg_node, 'inverse_composite_transform', apply2ims_fa, 'transforms')
+
+    pipeline.connect(inputspec, 'T1', newreg_node, 'fixed_image')
+    pipeline.connect(inputspec, 'bmaskt1', newreg_node, 'fixed_image_mask')
+    pipeline.connect(inputspec, 'fa_path', newreg_node, 'moving_image')
+
+    pipeline.connect(newreg_node, "composite_transform", sinker, "dti.nonlinear_fa.@composite")
+    pipeline.connect(newreg_node, "warped_image", sinker, "dti.nonlinear_fa.@warped")
+    pipeline.connect(newreg_node, "inverse_composite_transform", sinker, "dti.nonlinear_fa.@invcomp")
+    pipeline.connect(newreg_node, "inverse_warped_image", sinker, "dti.nonlinear_fa.@invwarp")
 
     pipeline.write_graph()
+    pipeline.config["Execution"] = {"keep_inputs": True, "remove_unnecessary_outputs": False}
     return pipeline
-
-
-if __name__=='__main__':
-    T1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/nii/ec105-kmj0105-000-MPRAGE.nii.gz'
-    ec_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000_corrected.nii.gz'
-    bvec_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-002_rotated.bvec'
-    #bmask_diff_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/brain_mask_warped_thresh.nii.gz'
-    basedir_from_pbr = '/data/henry7/PBR/subjects/kmj0105/dti/ec105-kmj0105-001-ep2d_diff_mddw_64_p2_new-000/'
-    #bmask_t1_from_pbr = '/data/henry7/PBR/subjects/kmj0105/masks/ec105-kmj0105-000-MPRAGE/brain_mask.nii.gz'
-
-    ptlist = ['kmj0105']
-    subjects_directory = '/data/henry7/PBR/subjects/'
-
-    for ptid in ptlist:
-
-        nlwf = nonlinear_reg_diff2t2_workflow(ptid, subjects_directory, basedir_from_pbr)
-        nlwf.inputs.inputspec.bvec_path = bvec_from_pbr
-        nlwf.inputs.inputspec.diffdata = ec_diff_from_pbr
-        #nlwf.inputs.inputspec.inputs.bmaskdiff_path = bmask_diff_from_pbr
-        nlwf.inputs.inputspec.T1 = T1_from_pbr
-        #nlwf.inputs.inputspec.inputs.bmaskt1 = bmask_t1_from_pbr
-        '''nlwf.outputs.outputspec.composite_transform = os.path.join(basedir_from_pbr,'my_composite_transform.mat')
-        nlwf.outputs.outputspec.inverse_composite_transform = os.path.join(basedir_from_pbr, 'my_inv_composite_transform.mat')
-        nlwf.outputs.outputspec.inverse_warped_image = os.path.join(basedir_from_pbr, 'my_inv_warpedimage.nii.gz')
-        nlwf.outputs.outputspec.warped_image = os.path.join(basedir_from_pbr, 'my_warped_image.nii.gz')'''
-        nlwf.run()
-        '''nlwf.run(plugin="SGE",plugin_args={"qsub_args":
-                       "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=4G -v MKL_NUM_THREADS=1"})'''
