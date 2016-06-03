@@ -3,9 +3,10 @@ from glob import glob
 from create_apm_warp2t1 import nonlinear_reg_diff2t2_workflow
 from subprocess import call
 
-subfile = '/home/kjordan/python_code/mydata_4myscripts/darpa'
+subfile = '/home/kjordan/python_code/mydata_4myscripts/darpa/ptlist_darpa.txt'
 with open(subfile) as f:
-    ptlist = f.read().splitlines()
+    lines = f.read().splitlines()
+ptlist = map(str.strip, lines[0].split(','))
 
 datadir = '/data/henry7/PBR/subjects'
 workingdir = '/scratch/henry_temp/kesshi/CHANGLAB/new_working_dir4'
