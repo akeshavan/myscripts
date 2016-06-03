@@ -1,15 +1,14 @@
 import os
 from glob import glob
 from create_apm_warp2t1 import nonlinear_reg_diff2t2_workflow
+from subprocess import call
 
-ptlist = ['kmj0081', 'kmj0082', 'kmj0084', 'kmj0087', 'kmj0091', 'kmj0092', 'kmj0096', 'kmj0099', 'kmj0105', 'kmj0118']
-#ptlist = ['kmj0081', 'kmj0082', 'kmj0084', 'kmj0087']
-#ptlist = ['kmj0091', 'kmj0092','kmj0105']
-#ptlist = ['kmj0096']
-#, 'kmj0099', 'kmj0108', 'kmj0118'] #trying on grid (0105 locally)
+subfile = '/home/kjordan/python_code/mydata_4myscripts/darpa'
+with open(subfile) as f:
+    ptlist = f.read().splitlines()
 
 datadir = '/data/henry7/PBR/subjects'
-workingdir = '/scratch/henry_temp/kesshi/CHANGLAB/new_working_dir'
+workingdir = '/scratch/henry_temp/kesshi/CHANGLAB/new_working_dir4'
 import nipype.pipeline.engine as pe
 metaworkflow = pe.Workflow("mwf", base_dir=workingdir)
 
@@ -24,11 +23,19 @@ for pt in ptlist:
     print sub_ec_diff
     subT1 = glob(ptdir+'/nii/*MPRAGE.nii.gz')[0]
     print subT1
+    subfa = glob(ptdiffdir+'/*_corrected_fa.nii.gz')[0]
+    subt1mask = glob(ptdir+'/masks/ec*/brain_mask.nii.gz')[0]
+    subdiffmask = glob(ptdiffdir+'/brain_mask_warped_thresh.nii.gz')[0]
+    bettedfa = os.path.join(ptdiffdir, 'fa_masked.nii.gz')
+    bettedt1 = glob(ptdir+'/masks/ec*/t1_masked.nii.gz')[0]
+    call(['fslmaths', subfa, '-mul', subdiffmask, bettedfa])
 
     nlwf = nonlinear_reg_diff2t2_workflow(pt, datadir, ptworkingdir, name=pt)
     nlwf.inputs.inputspec.bvec_path = sub_bvec
     nlwf.inputs.inputspec.diffdata = sub_ec_diff
-    nlwf.inputs.inputspec.T1 = subT1
+    nlwf.inputs.inputspec.T1 = bettedt1
+    nlwf.inputs.inputspec.fa_path = bettedfa
+    nlwf.inputs.inputspec.bmaskt1 = subt1mask
     metaworkflow.add_nodes([nlwf])
     #nlwf.run(plugin="SGE",plugin_args={"qsub_args":
     #                   "-q ms.q -l arch=lx24-amd64 -l h_stack=32M -l h_vmem=32G -v MKL_NUM_THREADS=8"})
