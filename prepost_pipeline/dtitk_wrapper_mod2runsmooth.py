@@ -262,7 +262,8 @@ class dtitkaffScalarVolInputSpec(CommandLineInputSpec):
     in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
     in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
     in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
-    out_path = traits.Str(desc='', mandatory=False, position=3, argstr="-out %s")
+    out_path = traits.Str(desc='', mandatory=False, position=3, argstr="-out %s",
+                          name_source="in_volume", name_template="%s_affxfmd.nii.gz")
 
 class dtitkaffScalarVolOutputSpec(TraitedSpec):
     out_file = traits.File(desc='moved volume', exists=True)
@@ -282,21 +283,6 @@ class dtitkaffScalarVolTask(CommandLine):
             outputs['out_file'] = os.path.abspath(outputs['out_file'] )
         return outputs
 
-    def _gen_filename(self, name):
-        if name is 'out_file':
-            return self._gen_outfilename()
-        else:
-            return None
-
-    def _gen_outfilename(self):
-        print "aff worked"
-        _, name, _ = split_filename(self.inputs.out_path)
-        if isdefined(self.inputs.out_path):# and isdefined(self.inputs.in_volume):
-            outname = self.inputs.out_path
-        else:
-            #outname = name+'_affxfmd.'+self.inputs.extension
-            outname = "TESTINGaff.nii.gz"
-        return outname
 
 
 class dtitkdiffeoScalarVolInputSpec(CommandLineInputSpec):
