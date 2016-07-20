@@ -5,7 +5,7 @@ import os
 
 #TODO: fix all wrappers to reflect the one with dtitkScalarVol
 
-class dtitkResampleInputSpec(CommandLineInputSpec):
+class dtitkTVResampleInputSpec(CommandLineInputSpec):
     in_tensor = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
     in_arraysz = traits.Str(desc='resampled array size', exists=True, mandatory=True, position=1, \
                             argstr="-size %s")
@@ -14,13 +14,35 @@ class dtitkResampleInputSpec(CommandLineInputSpec):
     out_path = traits.Str(desc='output path', exists=True, mandatory=True, position=3, \
                          argstr="-out %s")
 
-class dtitkResampleOutputSpec(TraitedSpec):
+class dtitkTVResampleOutputSpec(TraitedSpec):
     out_file = traits.File(exists=True)
 
-class dtitkResampleTask(CommandLine):
-    input_spec = dtitkResampleInputSpec
-    output_spec = dtitkResampleOutputSpec
+class dtitkTVResampleTask(CommandLine):
+    input_spec = dtitkTVResampleInputSpec
+    output_spec = dtitkTVResampleOutputSpec
     _cmd = 'TVResample'
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_path
+        return outputs
+
+class dtitkSVResampleInputSpec(CommandLineInputSpec):
+    in_volume = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
+    in_arraysz = traits.Str(desc='resampled array size', exists=True, mandatory=True, position=1, \
+                            argstr="-size %s")
+    in_voxsz = traits.Str(desc='resampled voxel size', exists=True, mandatory=True, position=2, \
+                          argstr="-vsize %s")
+    out_path = traits.Str(desc='output path', exists=True, mandatory=True, position=3, \
+                         argstr="-out %s")
+
+class dtitkSVResampleOutputSpec(TraitedSpec):
+    out_file = traits.File(exists=True)
+
+class dtitkSVResampleTask(CommandLine):
+    input_spec = dtitkSVResampleInputSpec
+    output_spec = dtitkSVResampleOutputSpec
+    _cmd = 'SVResample'
 
     def _list_outputs(self):
         outputs=self.output_spec().get()
@@ -194,7 +216,7 @@ class dtitkaffScalarVolInputSpec(CommandLineInputSpec):
     in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
     in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
     in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
-    out_path = traits.Str(desc='', position=3, argstr="-out %s")
+    out_path = traits.Str(desc='', mandatory=False, position=3, argstr="-out %s")
 
 class dtitkaffScalarVolOutputSpec(TraitedSpec):
     out_file = traits.File(desc='moved volume', exists=True)
@@ -208,7 +230,8 @@ class dtitkaffScalarVolTask(CommandLine):
         outputs=self.output_spec().get()
         outputs['out_file'] = self.inputs.out_path
         if not isdefined(outputs['out_file']) and isdefined(self.inputs.in_volume):
-            outputs['out_file'] = os.path.abspath(self._gen_outfilename())
+            #outputs['out_file'] = os.path.abspath(self._gen_outfilename())
+            outputs['out_file'] = os.path.abspath(self.inputs.in_volume).replace('.nii.gz', '_affxfmd.nii.gz')
         else:
             outputs['out_file'] = os.path.abspath(outputs['out_file'] )
         return outputs
@@ -225,7 +248,8 @@ class dtitkaffScalarVolTask(CommandLine):
         if isdefined(self.inputs.out_path):# and isdefined(self.inputs.in_volume):
             outname = self.inputs.out_path
         else:
-            outname = name+'_affxfmd.'+self.inputs.extension
+            #outname = name+'_affxfmd.'+self.inputs.extension
+            outname = "TESTINGaff.nii.gz"
         return outname
 
 
@@ -261,10 +285,10 @@ class dtitkdiffeoScalarVolTask(CommandLine):
     def _gen_outfilename(self):
         print "diff worked"
         _, name, _ = split_filename(self.inputs.out_path)
-        if isdefined(self.inputs.out_path):# and isdefined(self.inputs.in_volume):
+        if isdefined(self.inputs.out_path):
             outname = self.inputs.out_path
         else:
-            outname = name+'_diffeoxfmd.'+self.inputs.extension
+            outname = 'TESTINGdiffeo.nii.gz'
         return outname
 
 
