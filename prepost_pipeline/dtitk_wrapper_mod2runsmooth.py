@@ -206,7 +206,7 @@ class dtitkaffScalarVolTask(CommandLine):
 
     def _list_outputs(self):
         outputs=self.output_spec().get()
-        outputs['out_file'] = self.inputs.out_filename
+        outputs['out_file'] = self.inputs.out_path
         if not isdefined(outputs['out_file']) and isdefined(self.inputs.in_volume):
             outputs['out_file'] = os.path.abspath(self._gen_outfilename())
         else:
@@ -245,7 +245,7 @@ class dtitkdiffeoScalarVolTask(CommandLine):
 
     def _list_outputs(self):
         outputs=self.output_spec().get()
-        outputs['out_file'] = self.inputs.out_filename
+        outputs['out_file'] = self.inputs.out_path
         if not isdefined(outputs['out_file']) and isdefined(self.inputs.in_volume):
             outputs['out_file'] = os.path.abspath(self._gen_outfilename())
         else:
