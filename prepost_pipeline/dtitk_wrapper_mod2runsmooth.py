@@ -1,6 +1,9 @@
 __author__ = 'kjordan'
 
-from nipype.interfaces.base import TraitedSpec, CommandLineInputSpec, CommandLine, File, traits
+from nipype.interfaces.base import TraitedSpec, CommandLineInputSpec, CommandLine, File, traits, isdefined, split_filename
+import os
+
+#TODO: fix all wrappers to reflect the one with dtitkScalarVol
 
 class dtitkResampleInputSpec(CommandLineInputSpec):
     in_tensor = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
@@ -16,6 +19,7 @@ class dtitkResampleOutputSpec(TraitedSpec):
 
 class dtitkResampleTask(CommandLine):
     input_spec = dtitkResampleInputSpec
+    output_spec = dtitkResampleOutputSpec
     _cmd = 'TVResample'
 
     def _list_outputs(self):
@@ -33,6 +37,7 @@ class dtitkTVtoolOutputSpec(TraitedSpec):
 
 class dtitkTVtoolTask(CommandLine):
     input_spec = dtitkTVtoolInputSpec
+    output_spec = dtitkTVtoolOutputSpec
     _cmd = 'TVtool'
 
     def _list_outputs(self):
@@ -50,6 +55,7 @@ class dtitkBinThreshOutputSpec(TraitedSpec):
 
 class dtitkBinThreshTask(CommandLine):
     input_spec = dtitkBinThreshInputSpec
+    output_spec = dtitkBinThreshOutputSpec
     _cmd='BinaryThresholdImageFilter'
 
     def _list_outputs(self):
@@ -71,6 +77,7 @@ class dtitkRigidOutputSpec(TraitedSpec):
 
 class dtitkRigidTask(CommandLine):
     input_spec = dtitkRigidInputSpec
+    output_spec = dtitkRigidOutputSpec
     _cmd = 'dti_rigid_sn'
 
     def _list_outputs(self):
@@ -95,6 +102,7 @@ class dtitkAffineOutputSpec(TraitedSpec):
 
 class dtitkAffineTask(CommandLine):
     input_spec = dtitkAffineInputSpec
+    output_spec = dtitkAffineOutputSpec
     _cmd = 'dti_affine_sn'
 
     def _list_outputs(self):
@@ -117,6 +125,7 @@ class dtitkDiffeoOutputSpec(TraitedSpec):
 
 class dtitkDiffeoTask(CommandLine):
     input_spec = dtitkDiffeoInputSpec
+    output_spec = dtitkDiffeoOutputSpec
     _cmd = 'dti_diffeomorphic_sn'
 
     def _list_outputs(self):
@@ -143,17 +152,18 @@ class dtitkComposeXfmTask(CommandLine):
         outputs['out_file'] = self.inputs.in_df.replace('.df.nii.gz', '_combo.df.nii.gz')
         return outputs
 
-class dtitkSymTensor3DVolInputSpec(CommandLineInputSpec):
+class dtitkdiffeoSymTensor3DVolInputSpec(CommandLineInputSpec):
     in_tensor = traits.Str(desc='moving tensor', exists=True, mandatory=True, position=0, argstr="-in %s")
     in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
     in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
     out_path = traits.Str(desc='', exists=True, mandatory=True, position=3, argstr="-out %s")
 
-class dtitkSymTensor3DVolOutputSpec(TraitedSpec):
+class dtitkdiffeoSymTensor3DVolOutputSpec(TraitedSpec):
     out_file = traits.File(desc='cheese', exists=True)
 
-class dtitkSymTensor3DVolTask(CommandLine):
-    input_spec = dtitkSymTensor3DVolInputSpec
+class dtitkdiffeoSymTensor3DVolTask(CommandLine):
+    input_spec = dtitkdiffeoSymTensor3DVolInputSpec
+    output_spec = dtitkdiffeoSymTensor3DVolOutputSpec
     _cmd = 'deformationSymTensor3DVolume'
 
     def _list_outputs(self):
@@ -161,30 +171,112 @@ class dtitkSymTensor3DVolTask(CommandLine):
         outputs['out_file'] = self.inputs.out_path
         return outputs
 
-class dtitkScalarVolInputSpec(CommandLineInputSpec):
-    in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
+class dtitkaffSymTensor3DVolInputSpec(CommandLineInputSpec):
+    in_tensor = traits.Str(desc='moving tensor', exists=True, mandatory=True, position=0, argstr="-in %s")
     in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
     in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
     out_path = traits.Str(desc='', exists=True, mandatory=True, position=3, argstr="-out %s")
 
-class dtitkScalarVolOutputSpec(TraitedSpec):
+class dtitkaffSymTensor3DVolOutputSpec(TraitedSpec):
     out_file = traits.File(desc='cheese', exists=True)
 
-class dtitkScalarVolTask(CommandLine):
-    input_spec = dtitkScalarVolInputSpec
-    _cmd = 'deformationScalarVolume'
+class dtitkaffSymTensor3DVolTask(CommandLine):
+    input_spec = dtitkaffSymTensor3DVolInputSpec
+    output_spec = dtitkaffSymTensor3DVolOutputSpec
+    _cmd = 'affineSymTensor3DVolume'
 
     def _list_outputs(self):
         outputs=self.output_spec().get()
         outputs['out_file'] = self.inputs.out_path
         return outputs
 
-'''
-class dtitkRotBvecInputSpec(CommandLineInputSpec):
-    in_affxfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=0, argstr="%s")
-    in_bvecs = traits.Str(desc='bvec file', exists=True, mandatory=True, position=1, argstr="%s")
+class dtitkaffScalarVolInputSpec(CommandLineInputSpec):
+    in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
+    in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
+    in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
+    out_path = traits.Str(desc='', position=3, argstr="-out %s")
 
-class dtitkRotBvecTask(CommandLine):
-    input_spec = dtitkRotBvecInputSpec
-    _cmd = '/home/kjordan/python_code/myscripts/prepost_pipeline/rotate_bvecs_dtitk_kmj'
+class dtitkaffScalarVolOutputSpec(TraitedSpec):
+    out_file = traits.File(desc='moved volume', exists=True)
+
+class dtitkaffScalarVolTask(CommandLine):
+    input_spec = dtitkaffScalarVolInputSpec
+    output_spec = dtitkaffScalarVolOutputSpec
+    _cmd = 'affineScalarVolume'
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_filename
+        if not isdefined(outputs['out_file']) and isdefined(self.inputs.in_volume):
+            outputs['out_file'] = os.path.abspath(self._gen_outfilename())
+        else:
+            outputs['out_file'] = os.path.abspath(outputs['out_file'] )
+        return outputs
+
+    def _gen_filename(self, name):
+        if name is 'out_file':
+            return self._gen_outfilename()
+        else:
+            return None
+
+    def _gen_outfilename(self):
+        print "aff worked"
+        _, name, _ = split_filename(self.inputs.out_path)
+        if isdefined(self.inputs.out_path):# and isdefined(self.inputs.in_volume):
+            outname = self.inputs.out_path
+        else:
+            outname = name+'_affxfmd.'+self.inputs.extension
+        return outname
+
+
+class dtitkdiffeoScalarVolInputSpec(CommandLineInputSpec):
+    in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
+    in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
+    in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
+    out_path = traits.Str(desc='', position=3, argstr="-out %s")
+
+class dtitkdiffeoScalarVolOutputSpec(TraitedSpec):
+    out_file = traits.File(desc='moved volume', exists=True)
+
+class dtitkdiffeoScalarVolTask(CommandLine):
+    input_spec = dtitkdiffeoScalarVolInputSpec
+    output_spec = dtitkdiffeoScalarVolOutputSpec
+    _cmd = 'deformationScalarVolume'
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_filename
+        if not isdefined(outputs['out_file']) and isdefined(self.inputs.in_volume):
+            outputs['out_file'] = os.path.abspath(self._gen_outfilename())
+        else:
+            outputs['out_file'] = os.path.abspath(outputs['out_file'] )
+        return outputs
+
+    def _gen_filename(self, name):
+        if name is 'out_file':
+            return self._gen_outfilename()
+        else:
+            return None
+
+    def _gen_outfilename(self):
+        print "diff worked"
+        _, name, _ = split_filename(self.inputs.out_path)
+        if isdefined(self.inputs.out_path):# and isdefined(self.inputs.in_volume):
+            outname = self.inputs.out_path
+        else:
+            outname = name+'_diffeoxfmd.'+self.inputs.extension
+        return outname
+
+
     '''
+    def _gen_filename(self, name):
+        print "diffeo worked"
+        out_file = self.inputs.out_file
+        if not isdefined(out_file) and isdefined(self.inputs.in_volume):
+            out_file = self._gen_filename(self.inputs.in_file, suffix='_diffeoxfmd')
+        return os.path.abspath(out_file)
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_path
+        return outputs'''
