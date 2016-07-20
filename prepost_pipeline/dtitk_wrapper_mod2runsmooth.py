@@ -5,6 +5,52 @@ import os
 
 #TODO: fix all wrappers to reflect the one with dtitkScalarVol
 
+class dtitkTVAdjustVoxSpInputSpec(CommandLineInputSpec):
+    in_tensor = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
+    in_target = traits.Str(desc='target volume', exists=True, mandatory=False, position=2, \
+                            argstr="-target %s")
+    in_voxsz = traits.Str(desc='resampled voxel size', exists=True, mandatory=False, position=3, \
+                          argstr="-vsize %s")
+    out_path = traits.Str(desc='output path', exists=True, mandatory=True, position=1, \
+                         argstr="-out %s")
+    origin = traits.Str(desc='xyz voxel size', exists=True, mandatory=False, position=4, argstr='-origin %s')
+
+class dtitkTVAdjustVoxSpOutputSpec(TraitedSpec):
+    out_file = traits.File(exists=True)
+
+class dtitkTVAdjustVoxSpTask(CommandLine):
+    input_spec = dtitkTVAdjustVoxSpInputSpec
+    output_spec = dtitkTVAdjustVoxSpOutputSpec
+    _cmd = 'TVAdjustVoxelspace'
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_path
+        return outputs
+
+class dtitkSVAdjustVoxSpInputSpec(CommandLineInputSpec):
+    in_volume = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
+    in_target = traits.Str(desc='target volume', exists=True, mandatory=False, position=2, \
+                            argstr="-target %s")
+    in_voxsz = traits.Str(desc='resampled voxel size', exists=True, mandatory=False, position=3, \
+                          argstr="-vsize %s")
+    out_path = traits.Str(desc='output path', exists=True, mandatory=True, position=1, \
+                         argstr="-out %s")
+    origin = traits.Str(desc='xyz voxel size', exists=True, mandatory=False, position=4, argstr='-origin %s')
+
+class dtitkSVAdjustVoxSpOutputSpec(TraitedSpec):
+    out_file = traits.File(exists=True)
+
+class dtitkSVAdjustVoxSpTask(CommandLine):
+    input_spec = dtitkSVAdjustVoxSpInputSpec
+    output_spec = dtitkSVAdjustVoxSpOutputSpec
+    _cmd = 'SVAdjustVoxelspace'
+
+    def _list_outputs(self):
+        outputs=self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_path
+        return outputs
+
 class dtitkTVResampleInputSpec(CommandLineInputSpec):
     in_tensor = traits.Str(desc="image to resample", exists=True, mandatory=True, position=0, argstr="-in %s")
     in_arraysz = traits.Str(desc='resampled array size', exists=True, mandatory=True, position=1, \
@@ -255,9 +301,13 @@ class dtitkaffScalarVolTask(CommandLine):
 
 class dtitkdiffeoScalarVolInputSpec(CommandLineInputSpec):
     in_volume = traits.Str(desc='moving volume', exists=True, mandatory=True, position=0, argstr="-in %s")
-    in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=1, argstr="-trans %s")
-    in_target = traits.Str(desc='', exists=True, mandatory=True, position=2, argstr="-target %s")
-    out_path = traits.Str(desc='', position=3, argstr="-out %s")
+    in_xfm = traits.Str(desc='transform to apply', exists=True, mandatory=True, position=2, argstr="-trans %s")
+    in_target = traits.Str(desc='', exists=True, mandatory=True, position=3, argstr="-target %s")
+    out_path = traits.Str(desc='', position=1, argstr="-out %s")
+    in_vsize = traits.Str(desc='', exists=True, mandatory=False, position=4, argstr="-vsize %s")
+    in_flip = traits.Str(desc='', exists=True, mandatory=False, position=5, argstr="-flip %s")
+    in_type = traits.Str(desc='', exists=True, mandatory=False, position=6, argstr="-type %s")
+    in_interp = traits.Str(desc='0 trilin, 1 NN', exists=True, mandatory=False, position=7, argstr="-interp %s")
 
 class dtitkdiffeoScalarVolOutputSpec(TraitedSpec):
     out_file = traits.File(desc='moved volume', exists=True)
